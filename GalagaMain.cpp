@@ -299,7 +299,7 @@ WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		else
 		{
-			gGalaga->addProjectile();
+			gGalaga->addProjectile(Projectile::PLAYER);
 		}
 		return 0;
 

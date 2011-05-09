@@ -10,6 +10,7 @@
 #include "Rect.h"
 #include "Circle.h"
 #include "Alien.h"
+#include "Projectile.h"
 #include <list>
 using namespace std;
 
@@ -26,7 +27,7 @@ public:
 	void pause();
 	void unpause();
 	bool isPaused();
-	void addProjectile();
+	void addProjectile(Projectile::Owner owner);
 
 	void update(float dt);
 	void draw(HDC hBackBufferDC, HDC hSpriteDC);
@@ -34,11 +35,12 @@ public:
 private:
 	void updateShip(float dt);
 	void checkAlienKills();
-	bool projectileAlienCollision(Alien* alien, Sprite* projectile);
+	bool projectileAlienCollision(Alien* alien, Projectile* projectile);
 	void updateAliens(float dt);
 	void updateAlien(Alien* alien, float dt);
 	void updateProjectiles(float dt);
 	void loadLevel(int level);
+	void checkLevelDone();
 	//void increaseScore(bool blue);
 
 private:
@@ -60,7 +62,7 @@ private:
 	Sprite* mGameBoard;
 	Sprite* mSpaceShip;
 	list<Alien*> mAliens;
-	list<Sprite*> mProjectiles;
+	list<Projectile*> mProjectiles;
 
 	POINT mLastMousePos;
 	POINT mCurrMousePos;

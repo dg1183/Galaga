@@ -39,9 +39,5 @@ void Alien::draw(HDC backbuffer, HDC spriteDC)
 	mAlienSprite->draw(backbuffer, spriteDC, mSpriteLocation);
 }
 
-Sprite* Alien::getSprite()
-{
-	return mAlienSprite;
-}
 
 

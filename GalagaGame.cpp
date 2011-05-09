@@ -21,7 +21,7 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 	mhAppInst    = hAppInst;
 	mhMainWnd    = hMainWnd;
 	mWndCenterPt = wndCenterPt;
-	mLevel = 1;
+	mLevel = 0;
 
 	// Players start game with score of zero.
 	mScore = 0;
@@ -29,7 +29,7 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 	// The game is initially paused.
 	mPaused    = true;
 
-	mLevelDone = false;
+	mLevelDone = true;
 
 	// No recovery time for the ships gun.
 	mGunCooldown = 0.0f;
@@ -49,7 +49,6 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 	mSpaceShip = new Sprite(mhAppInst, IDB_SHIP,
 		IDB_SHIP_MASK, bc, p0, v0);
 
-	loadLevel(mLevel);
 
 	// Initialize the rectangles.
 	mShipBounds  = Rect(0, 600, 400, 800); 
@@ -129,6 +128,7 @@ void GalagaGame::update(float dt)
 			updateAliens(dt);
 		if(!mProjectiles.empty())
 			updateProjectiles(dt);
+		checkLevelDone();
 
 		// Decrease recovery time as time passes.
 		if( mGunCooldown > 0.0f )
@@ -148,7 +148,7 @@ void GalagaGame::draw(HDC hBackBufferDC, HDC hSpriteDC)
 	
 	if (!mProjectiles.empty())
 	{
-		list<Sprite*>::iterator ip = mProjectiles.begin();
+		list<Projectile*>::iterator ip = mProjectiles.begin();
 		while (ip != mProjectiles.end() || mProjectiles.empty())
 		{
 			(*ip)->draw(hBackBufferDC, hSpriteDC);
@@ -209,7 +209,7 @@ void GalagaGame::updateShip(float dt)
 
 void GalagaGame::checkAlienKills()
 {
-	list<Sprite*>::iterator i = mProjectiles.begin();
+	list<Projectile*>::iterator i = mProjectiles.begin();
 	while(i != mProjectiles.end() && !mProjectiles.empty())
 	{
 		if(!mAliens.empty())
@@ -244,31 +244,30 @@ bool GalagaGame::isPaused()
 	return mPaused;
 }
 
-void GalagaGame::addProjectile()
+void GalagaGame::addProjectile(Projectile::Owner owner)
 {
-	if (mGunCooldown <= 0.0f)
+	Vec2 pos;
+	Vec2 vel;
+	
+	if (owner == Projectile::PLAYER)
 	{
-		Circle bc;
-		Vec2 pos;
-		Vec2 vel;
+		if (mGunCooldown <= 0.0f)
+		{
+			pos = mSpaceShip->mPosition;
+			vel.x = 0.0f;
+			vel.y = -150.0f;
 
-		bc.c = mSpaceShip->mPosition;
-		bc.r = 6;
-
-		pos = mSpaceShip->mPosition;
-		vel.x = 0.0f;
-		vel.y = -150.0f;
-		Sprite* projectile = new Sprite(mhAppInst, IDB_PROJECTILE, 
-			IDB_PROJECTILE_MASK, bc, pos, vel);
-		mProjectiles.push_back(projectile);
-		mGunCooldown = 0.3f;
+			Projectile* projectile = new Projectile(mhAppInst, owner, pos, vel);
+			mProjectiles.push_back(projectile);
+			mGunCooldown = 0.1f;
+		}
 	}
 }
 
-bool GalagaGame::projectileAlienCollision(Alien* alien, Sprite* projectile)
+bool GalagaGame::projectileAlienCollision(Alien* alien, Projectile* projectile)
 {
 	Vec2 normal;
-	if(projectile->mBoundingCircle.hits(alien->getSprite()->mBoundingCircle, normal))
+	if(projectile->mProjectileSprite->mBoundingCircle.hits(alien->mAlienSprite->mBoundingCircle, normal))
 	{
 		return true;
 	}
@@ -277,7 +276,7 @@ bool GalagaGame::projectileAlienCollision(Alien* alien, Sprite* projectile)
 
 void GalagaGame::updateProjectiles(float dt)
 {
-	list<Sprite*>::iterator i = mProjectiles.begin();
+	list<Projectile*>::iterator i = mProjectiles.begin();
 	for(i; i != mProjectiles.end() || mProjectiles.empty(); i++)
 	{
 		(*i)->update(dt);
@@ -294,8 +293,6 @@ void GalagaGame::updateProjectiles(float dt)
 						
 						delete (*ia);
 						ia = mAliens.erase(ia);
-						if (mAliens.size() == 0)
-							mLevelDone = true;
 
 						delete (*i);
 						mProjectiles.pop_back();
@@ -321,7 +318,7 @@ void GalagaGame::updateProjectiles(float dt)
 		
 		if(i != mProjectiles.end())
 		{
-			if (!mBoardBounds.isPtInside((*i)->mPosition))
+			if (!mBoardBounds.isPtInside((*i)->mProjectileSprite->mPosition))
 				{
 					delete (*i);
 					i = mProjectiles.erase(i);
@@ -339,7 +336,7 @@ void GalagaGame::updateProjectiles(float dt)
 
 void GalagaGame::updateAlien(Alien* alien, float dt)
 {
-	alien->getSprite()->update(dt);
+	alien->mAlienSprite->update(dt);
 }		
 
 void GalagaGame::updateAliens(float dt)
@@ -351,20 +348,20 @@ void GalagaGame::updateAliens(float dt)
 		i++;
 	}
 
-	if(mAliens.front()->getSprite()->mVelocity.x > 0)
+	if(mAliens.front()->mAlienSprite->mVelocity.x > 0)
 		mAliens.sort(rightToLeft);
 	else
 		mAliens.sort(leftToRight);
 	
-	if(mAlienBounds.forceInside(mAliens.front()->getSprite()->mBoundingCircle))
+	if(mAlienBounds.forceInside(mAliens.front()->mAlienSprite->mBoundingCircle))
 	{
 		//Reached the edge for the board, drop down and reflect for all aliens
 		list<Alien*>::iterator iter = mAliens.begin();
 		while (iter != mAliens.end())
 		{
-			mAlienBounds.forceInside((*iter)->getSprite()->mBoundingCircle);
-			(*iter)->getSprite()->mVelocity.x *= -1.0f;
-			(*iter)->getSprite()->mPosition.y += 10.0f;
+			mAlienBounds.forceInside((*iter)->mAlienSprite->mBoundingCircle);
+			(*iter)->mAlienSprite->mVelocity.x *= -1.0f;
+			(*iter)->mAlienSprite->mPosition.y += 10.0f;
 			iter++;
 		}
 	}
@@ -399,14 +396,21 @@ void GalagaGame::loadLevel(int level)
 
 bool rightToLeft(Alien* alien1, Alien* alien2)
 {
-	return (alien1->getSprite()->mPosition.x > alien2->getSprite()->mPosition.x);
+	return (alien1->mAlienSprite->mPosition.x > alien2->mAlienSprite->mPosition.x);
 }
 
 bool leftToRight(Alien* alien1, Alien* alien2)
 {
-	return (alien1->getSprite()->mPosition.x < alien2->getSprite()->mPosition.x);
+	return (alien1->mAlienSprite->mPosition.x < alien2->mAlienSprite->mPosition.x);
 }
 
+void GalagaGame::checkLevelDone()
+{
+	if (mAliens.size() == 0)
+	{
+		mLevelDone = true;
+	}
+}
 
 /*
 void GalagaGame::increaseScore(bool blue)

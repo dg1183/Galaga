@@ -19,12 +19,9 @@ public:
 
 	void update(float dt);
 	void draw(HDC backBuffer, HDC spriteHDC);
-	Sprite* getSprite();
+	Sprite* mAlienSprite;
 	
 private:
-	Sprite* mAlienSprite;
 	Rect mSpriteLocation;
-
-
 };
 

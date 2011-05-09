@@ -79,6 +79,7 @@
     <ClCompile Include="Circle.cpp" />
     <ClCompile Include="GalagaGame.cpp" />
     <ClCompile Include="GalagaMain.cpp" />
+    <ClCompile Include="Projectile.cpp" />
     <ClCompile Include="Rect.cpp" />
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="Vec2.cpp" />
@@ -88,6 +89,7 @@
     <ClInclude Include="BackBuffer.h" />
     <ClInclude Include="Circle.h" />
     <ClInclude Include="GalagaGame.h" />
+    <ClInclude Include="Projectile.h" />
     <ClInclude Include="Rect.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Sprite.h" />
