@@ -11,6 +11,7 @@
 #include "Circle.h"
 #include "Alien.h"
 #include "Projectile.h"
+#include "Player.h"
 #include <list>
 using namespace std;
 
@@ -27,7 +28,7 @@ public:
 	void pause();
 	void unpause();
 	bool isPaused();
-	void addProjectile(Projectile::Owner owner);
+	void addProjectile(bool playerOwned);
 
 	void update(float dt);
 	void draw(HDC hBackBufferDC, HDC hSpriteDC);
@@ -35,7 +36,7 @@ public:
 private:
 	void updateShip(float dt);
 	void checkAlienKills();
-	bool projectileAlienCollision(Alien* alien, Projectile* projectile);
+	bool checkCollision(Sprite* sprite1, Sprite* sprite2);
 	void updateAliens(float dt);
 	void updateAlien(Alien* alien, float dt);
 	void updateProjectiles(float dt);
@@ -60,7 +61,7 @@ private:
 	float mGunCooldown;
 
 	Sprite* mGameBoard;
-	Sprite* mSpaceShip;
+	Player* mPlayer;
 	list<Alien*> mAliens;
 	list<Projectile*> mProjectiles;
 

@@ -8,22 +8,17 @@
 
 class Projectile
 {
-public:
-	enum Owner {
-		PLAYER,
-		ALIEN
-	};
-	
+public:	
 	Sprite* mProjectileSprite;
 
-	Projectile(HINSTANCE appInst, Owner owner, Vec2 loc, Vec2 vel);
+	Projectile(HINSTANCE appInst, bool playerOwned, Vec2 loc, Vec2 vel);
 	~Projectile(void);
 
 	void update(float dt);
 	void draw(HDC backbuffer, HDC spriteDC);
 
 private:
-	Owner mOwner;
+	bool mPlayerOwned;
 	
 };
 

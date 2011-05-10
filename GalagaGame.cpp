@@ -23,12 +23,8 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 	mWndCenterPt = wndCenterPt;
 	mLevel = 0;
 
-	// Players start game with score of zero.
-	mScore = 0;
-
 	// The game is initially paused.
 	mPaused    = true;
-
 	mLevelDone = true;
 
 	// No recovery time for the ships gun.
@@ -46,13 +42,13 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 	p0.y = 700;
 	bc.c = p0;
 	bc.r = 18.0f; // Ship radius = 18
-	mSpaceShip = new Sprite(mhAppInst, IDB_SHIP,
-		IDB_SHIP_MASK, bc, p0, v0);
+
+	mPlayer = new Player(mhAppInst, p0, v0);
 
 
 	// Initialize the rectangles.
 	mShipBounds  = Rect(0, 600, 400, 800); 
-	mAlienBounds = Rect(0, 0, 400, 600);
+	mAlienBounds = Rect(0, 0, 400, 800);
 	mBoardBounds = Rect(0, 0, 400, 800);
 	//mBlueGoal    = Rect(0, 146, 30, 354);
 	//mRedGoal     = Rect(833, 146, 863, 354);
@@ -61,7 +57,7 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 GalagaGame::~GalagaGame()
 {
 	delete mGameBoard;
-	delete mSpaceShip;
+	delete mPlayer;
 	while(!mAliens.empty())
 		{
 			delete mAliens.front();
@@ -89,7 +85,7 @@ void GalagaGame::pause()
 void GalagaGame::unpause()
 {
 	// Fix cursor to paddle position.
-	POINT p = mSpaceShip->mPosition;
+	POINT p = mPlayer->mShipSprite->mPosition;
 	ClientToScreen(mhMainWnd, &p);
 
 	SetCursorPos(p.x, p.y);
@@ -109,14 +105,26 @@ void GalagaGame::update(float dt)
 	
 	if (mLevelDone)
 	{
+		if(mAliens.empty())
+		{
+			mLevel++; //All aliens dead, increment level
+			mPlayer->updateTotalScore(); //Add last level score to total score
+		}
+		
 		while(!mProjectiles.empty())
 		{
 			delete mProjectiles.front();
 			mProjectiles.pop_front();
 		}
+
+		while(!mAliens.empty())
+		{
+			delete mAliens.front();
+			mAliens.pop_front();
+		}
+
 		pause();
 		mLevelDone = false;
-		mLevel++;
 		loadLevel(mLevel);
 	}
 	// Only update the game if the game is not paused.
@@ -166,16 +174,7 @@ void GalagaGame::draw(HDC hBackBufferDC, HDC hSpriteDC)
 		}
 	}
 
-	mSpaceShip->draw(hBackBufferDC, hSpriteDC);
-
-
-
-	// Draw the player scores.
-	char score[32];
-	sprintf(score, "Score = %d", mScore);
-
-	SetBkMode(hBackBufferDC, TRANSPARENT);
-	TextOut(hBackBufferDC, 15, 45, score, (int)strlen(score));
+	mPlayer->draw(hBackBufferDC, hSpriteDC);
 
 }
 
@@ -190,17 +189,17 @@ void GalagaGame::updateShip(float dt)
 	Vec2 dp((float)dx, (float)dy);
 
 	// Velocity is change in position with respect to time.
-	mSpaceShip->mVelocity = dp / dt;
+	mPlayer->mShipSprite->mVelocity = dp / dt;
 
 	// Update the blue paddle's position.
-	mSpaceShip->update(dt);
+	mPlayer->update(dt);
 
 	// Make sure the blue paddle stays inbounds.
-	mShipBounds.forceInside(mSpaceShip->mBoundingCircle);
-	mSpaceShip->mPosition = mSpaceShip->mBoundingCircle.c;
+	mShipBounds.forceInside(mPlayer->mShipSprite->mBoundingCircle);
+	mPlayer->mShipSprite->mPosition = mPlayer->mShipSprite->mBoundingCircle.c;
 
 	// The current position is now the last mouse position.
-	mLastMousePos = mSpaceShip->mPosition;
+	mLastMousePos = mPlayer->mShipSprite->mPosition;
 
 	// Keep mouse cursor fixed to paddle.
 	ClientToScreen(mhMainWnd, &mLastMousePos);
@@ -217,7 +216,7 @@ void GalagaGame::checkAlienKills()
 			list<Alien*>::iterator ia = mAliens.begin();
 			while(ia != mAliens.end())
 			{
-				if (projectileAlienCollision((*ia), (*i)))
+				if (checkCollision((*ia)->mAlienSprite, (*i)->mProjectileSprite))
 				{
 					delete (*ia);
 					ia = mAliens.erase(ia);
@@ -244,30 +243,30 @@ bool GalagaGame::isPaused()
 	return mPaused;
 }
 
-void GalagaGame::addProjectile(Projectile::Owner owner)
+void GalagaGame::addProjectile(bool playerOwned)
 {
 	Vec2 pos;
 	Vec2 vel;
 	
-	if (owner == Projectile::PLAYER)
+	if (playerOwned)
 	{
 		if (mGunCooldown <= 0.0f)
 		{
-			pos = mSpaceShip->mPosition;
+			pos = mPlayer->mShipSprite->mPosition;
 			vel.x = 0.0f;
 			vel.y = -150.0f;
 
-			Projectile* projectile = new Projectile(mhAppInst, owner, pos, vel);
+			Projectile* projectile = new Projectile(mhAppInst, playerOwned, pos, vel);
 			mProjectiles.push_back(projectile);
 			mGunCooldown = 0.1f;
 		}
 	}
 }
 
-bool GalagaGame::projectileAlienCollision(Alien* alien, Projectile* projectile)
+bool GalagaGame::checkCollision(Sprite* sprite1, Sprite* sprite2)
 {
 	Vec2 normal;
-	if(projectile->mProjectileSprite->mBoundingCircle.hits(alien->mAlienSprite->mBoundingCircle, normal))
+	if(sprite1->mBoundingCircle.hits(sprite2->mBoundingCircle, normal))
 	{
 		return true;
 	}
@@ -286,7 +285,7 @@ void GalagaGame::updateProjectiles(float dt)
 			list<Alien*>::iterator ia = mAliens.begin();
 			for(ia; ia != mAliens.end() || mAliens.empty(); ia++)
 			{
-				if(projectileAlienCollision((*ia), (*i)))
+				if(checkCollision((*ia)->mAlienSprite, (*i)->mProjectileSprite))
 				{
 					if ((*i) == mProjectiles.back())
 					{
@@ -297,6 +296,7 @@ void GalagaGame::updateProjectiles(float dt)
 						delete (*i);
 						mProjectiles.pop_back();
 						i = mProjectiles.end();
+						mPlayer->score(20);
 
 						break;
 					}
@@ -304,11 +304,11 @@ void GalagaGame::updateProjectiles(float dt)
 					{
 						delete (*ia);
 						ia = mAliens.erase(ia);
-						if (mAliens.size() == 0)
-							mLevelDone = true;
-
+						
 						delete (*i);
 						i = mProjectiles.erase(i);
+
+						mPlayer->score(20);
 
 						break;
 					}
@@ -345,6 +345,12 @@ void GalagaGame::updateAliens(float dt)
 	while(i != mAliens.end())
 	{
 		(*i)->update(dt);
+		if (checkCollision((*i)->mAlienSprite, mPlayer->mShipSprite))
+		{
+			mPlayer->kill();
+			mLevelDone = true;
+			break;
+		}
 		i++;
 	}
 
@@ -392,6 +398,8 @@ void GalagaGame::loadLevel(int level)
 		nextcolumn = mWndCenterPt.x - (rowlength * 26 / 2);
 		nextrow += 50;
 	}
+
+	mPlayer->resetLevelScore(); //Reset level score to 0
 }
 
 bool rightToLeft(Alien* alien1, Alien* alien2)
