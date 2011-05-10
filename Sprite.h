@@ -23,13 +23,15 @@ public:
 
 	void update(float dt);
 	void draw(HDC hBackBufferDC, HDC hSpriteDC);
-	void Sprite::draw(HDC hBackBufferDC, HDC hSpriteDC, Rect sourceRect);
+	void draw(HDC hBackBufferDC, HDC hSpriteDC, Rect sourceRect);
+	void setNewImage(int newImageID);
 
 public:
 	// Make public
 	Circle    mBoundingCircle;
 	Vec2      mPosition; 
 	Vec2      mVelocity;
+	Rect	  mBoundingRect;
 
 private:
 	// Make copy constructor and assignment operator private

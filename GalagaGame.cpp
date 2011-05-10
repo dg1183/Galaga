@@ -8,6 +8,7 @@
 #include "resource.h" // For Bitmap resource IDs
 #include "Alien.h"
 
+
 using namespace std;
 
 
@@ -25,13 +26,12 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 
 	// The game is initially paused.
 	mPaused    = true;
-	mLevelDone = true;
+	mBetweenLevels = true;
 
 	// No recovery time for the ships gun.
 	mGunCooldown = 0.0f;
 
 	// Create the sprites:
-
 	Circle bc;
 	Vec2   p0 = wndCenterPt;
 	Vec2   v0(0.0f, 0.0f);
@@ -47,11 +47,15 @@ GalagaGame::GalagaGame(HINSTANCE hAppInst,
 
 
 	// Initialize the rectangles.
-	mShipBounds  = Rect(0, 600, 400, 800); 
-	mAlienBounds = Rect(0, 0, 400, 800);
-	mBoardBounds = Rect(0, 0, 400, 800);
+	mShipBounds  = Rect(0, 500, 400, 600); 
+	mAlienBounds = Rect(0, 0, 400, 600);
+	mBoardBounds = Rect(0, 0, 400, 600);
 	//mBlueGoal    = Rect(0, 146, 30, 354);
 	//mRedGoal     = Rect(833, 146, 863, 354);
+
+	//Load menus
+	mResumeButton = new galagaButton(mhAppInst, IDB_RESUME, IDB_RESUMEMO, IDB_BUTTON_MASK, mWndCenterPt);
+
 }
 
 GalagaGame::~GalagaGame()
@@ -71,9 +75,12 @@ GalagaGame::~GalagaGame()
 	}
 }
 
-void GalagaGame::pause()
+void GalagaGame::pause(bool betweenLevels)
 {
-	mPaused = true;
+	if(betweenLevels)
+		mBetweenLevels = true;
+	else
+		mPaused = true;
 
 	// Game is unpaused--release capture on mouse.
 	ReleaseCapture();
@@ -84,26 +91,30 @@ void GalagaGame::pause()
 
 void GalagaGame::unpause()
 {
-	// Fix cursor to paddle position.
-	POINT p = mPlayer->mShipSprite->mPosition;
-	ClientToScreen(mhMainWnd, &p);
+	if ((isPaused() && mResumeButton->mMouseover) || betweenLevels())
+		{
+		// Fix cursor to paddle position.
+		POINT p = mPlayer->mShipSprite->mPosition;
+		ClientToScreen(mhMainWnd, &p);
 
-	SetCursorPos(p.x, p.y);
-	GetCursorPos(&mLastMousePos);
+		SetCursorPos(p.x, p.y);
+		GetCursorPos(&mLastMousePos);
 
-	mPaused = false;
+		mPaused = false;
+		mBetweenLevels = false;
 
-	// Capture the mouse when not paused.
-	SetCapture(mhMainWnd);
+		// Capture the mouse when not paused.
+		SetCapture(mhMainWnd);
 
-	// Hide the mouse cursor when not paused.
-	ShowCursor(false); 
+		// Hide the mouse cursor when not paused.
+		ShowCursor(false); 
+		}
 }
 
 void GalagaGame::update(float dt)
 {
 	
-	if (mLevelDone)
+	if (mBetweenLevels)
 	{
 		if(mAliens.empty())
 		{
@@ -123,12 +134,12 @@ void GalagaGame::update(float dt)
 			mAliens.pop_front();
 		}
 
-		pause();
-		mLevelDone = false;
+		pause(mBetweenLevels);
+		//mBetweenLevels = false;
 		loadLevel(mLevel);
 	}
 	// Only update the game if the game is not paused.
-	if( !mPaused )
+	if( !mPaused && !mBetweenLevels)
 	{
 		
 		updateShip(dt);
@@ -142,39 +153,57 @@ void GalagaGame::update(float dt)
 		if( mGunCooldown > 0.0f )
 			mGunCooldown -= dt;
 	}
+	else
+	{
+		GetCursorPos(&mLastMousePos);
+		ScreenToClient(mhMainWnd, &mLastMousePos);
+	
+		if(mResumeButton->mButtonSprite->mBoundingRect.isPtInside(mLastMousePos))
+			mResumeButton->mMouseover = true;
+		else
+			mResumeButton->mMouseover = false;
+	}
 }
 
 void GalagaGame::draw(HDC hBackBufferDC, HDC hSpriteDC)
 {
 	// Draw the sprites.
 	mGameBoard->draw(hBackBufferDC, hSpriteDC);
-	
-	char buffer[256];
-	sprintf(buffer, "IsEmpty: %s", (mProjectiles.empty())?"True":"False");
+
+	char loc[32];
+	COLORREF oldColor;
+	sprintf(loc, "x = %d | y = %d", mLastMousePos.x, mLastMousePos.y);
 	SetBkMode(hBackBufferDC, TRANSPARENT);
-	TextOut(hBackBufferDC, 20, 10, buffer, (int)strlen(buffer));
+	oldColor = SetTextColor(hBackBufferDC, RGB(255,255,255));
+	TextOut(hBackBufferDC, 15, 15, loc, (int)strlen(loc));
+	SetTextColor(hBackBufferDC, oldColor);
 	
-	if (!mProjectiles.empty())
+	if (mPaused)
+		mResumeButton->draw(hBackBufferDC, hSpriteDC);
+	else
 	{
-		list<Projectile*>::iterator ip = mProjectiles.begin();
-		while (ip != mProjectiles.end() || mProjectiles.empty())
+		if (!mProjectiles.empty())
 		{
-			(*ip)->draw(hBackBufferDC, hSpriteDC);
-			ip++;
+			list<Projectile*>::iterator ip = mProjectiles.begin();
+			while (ip != mProjectiles.end() || mProjectiles.empty())
+			{
+				(*ip)->draw(hBackBufferDC, hSpriteDC);
+				ip++;
+			}
 		}
-	}
 
-	if (!mAliens.empty())
-	{
-		list<Alien*>::iterator i = mAliens.begin();
-		while(i != mAliens.end() || mAliens.empty())
+		if (!mAliens.empty())
 		{
-			(*i)->draw(hBackBufferDC, hSpriteDC);
-			i++;
+			list<Alien*>::iterator i = mAliens.begin();
+			while(i != mAliens.end() || mAliens.empty())
+			{
+				(*i)->draw(hBackBufferDC, hSpriteDC);
+				i++;
+			}
 		}
-	}
 
-	mPlayer->draw(hBackBufferDC, hSpriteDC);
+		mPlayer->draw(hBackBufferDC, hSpriteDC);
+	}
 
 }
 
@@ -320,6 +349,8 @@ void GalagaGame::updateProjectiles(float dt)
 		{
 			if (!mBoardBounds.isPtInside((*i)->mProjectileSprite->mPosition))
 				{
+					mPlayer->score(-1); //deduct a point for missing
+					
 					delete (*i);
 					i = mProjectiles.erase(i);
 
@@ -348,7 +379,7 @@ void GalagaGame::updateAliens(float dt)
 		if (checkCollision((*i)->mAlienSprite, mPlayer->mShipSprite))
 		{
 			mPlayer->kill();
-			mLevelDone = true;
+			mBetweenLevels = true;
 			break;
 		}
 		i++;
@@ -367,7 +398,7 @@ void GalagaGame::updateAliens(float dt)
 		{
 			mAlienBounds.forceInside((*iter)->mAlienSprite->mBoundingCircle);
 			(*iter)->mAlienSprite->mVelocity.x *= -1.0f;
-			(*iter)->mAlienSprite->mPosition.y += 10.0f;
+			(*iter)->mAlienSprite->mPosition.y += 20.0f;
 			iter++;
 		}
 	}
@@ -379,7 +410,7 @@ void GalagaGame::loadLevel(int level)
 	int rowlength = row + 5;
 	int columnwidth = 30;
 	int nextcolumn = mWndCenterPt.x - (rowlength * 26 / 2);
-	int nextrow = 200;
+	int nextrow = 50;
 
 	for (int r = 0; r < row; r++)
 	{
@@ -389,14 +420,14 @@ void GalagaGame::loadLevel(int level)
 			Vec2 v;
 			p.x = nextcolumn;
 			p.y = nextrow;
-			v.x = 50;
+			v.x = 75;
 			v.y = 0;
 			Alien* alien = new Alien(mhAppInst, Alien::BLUE, p, v);
 			mAliens.push_back(alien);
-			nextcolumn += 30;
+			nextcolumn += columnwidth;
 		}
 		nextcolumn = mWndCenterPt.x - (rowlength * 26 / 2);
-		nextrow += 50;
+		nextrow += 35;
 	}
 
 	mPlayer->resetLevelScore(); //Reset level score to 0
@@ -416,26 +447,11 @@ void GalagaGame::checkLevelDone()
 {
 	if (mAliens.size() == 0)
 	{
-		mLevelDone = true;
+		mBetweenLevels = true;
 	}
 }
 
-/*
-void GalagaGame::increaseScore(bool blue)
+bool GalagaGame::betweenLevels()
 {
-	if( blue )
-		++mBlueScore;
-	else
-		++mRedScore;
-
-	// A point was just scored, so reset puck to center and pause game.
-	mPuck->mPosition = Vec2(mWndCenterPt.x, mWndCenterPt.y);
-	mPuck->mVelocity = Vec2(0.0f, 0.0f);
-	mPuck->mBoundingCircle.c = Vec2(mWndCenterPt.x, mWndCenterPt.y);
-
-	// After score, pause the game so player can prepare for 
-	// next round.
-	pause();
+	return mBetweenLevels;
 }
-
-*/

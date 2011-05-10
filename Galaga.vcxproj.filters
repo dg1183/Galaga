@@ -45,6 +45,9 @@
     <ClCompile Include="Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="galagaButton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackBuffer.h">
@@ -77,6 +80,9 @@
     <ClInclude Include="Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="galagaButton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Galaga.rc">
@@ -106,6 +112,15 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="spaceshipmask.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ResumeDefault.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ResumeMouseover.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="ButtonMask.bmp">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

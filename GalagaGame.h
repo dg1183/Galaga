@@ -12,6 +12,7 @@
 #include "Alien.h"
 #include "Projectile.h"
 #include "Player.h"
+#include "galagaButton.h"
 #include <list>
 using namespace std;
 
@@ -25,9 +26,10 @@ public:
 		Vec2 wndCenterPt);
 	~GalagaGame();
 
-	void pause();
+	void pause(bool betweenLevels);
 	void unpause();
 	bool isPaused();
+	bool betweenLevels();
 	void addProjectile(bool playerOwned);
 
 	void update(float dt);
@@ -42,7 +44,7 @@ private:
 	void updateProjectiles(float dt);
 	void loadLevel(int level);
 	void checkLevelDone();
-	//void increaseScore(bool blue);
+	
 
 private:
 	HINSTANCE mhAppInst;
@@ -53,7 +55,7 @@ private:
 	int mLevel;
 
 	bool mPaused;
-	bool mLevelDone;
+	bool mBetweenLevels;
 
 	const float MAX_SHIP_SPEED;
 	const float PROJECTILE_SPEED;
@@ -64,6 +66,8 @@ private:
 	Player* mPlayer;
 	list<Alien*> mAliens;
 	list<Projectile*> mProjectiles;
+	galagaButton* mResumeButton;
+
 
 	POINT mLastMousePos;
 	POINT mCurrMousePos;

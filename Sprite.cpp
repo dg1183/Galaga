@@ -26,6 +26,12 @@ Sprite::Sprite(HINSTANCE hAppInst, int imageID, int maskID,
 	mBoundingCircle = bc;
 	mPosition       = p0;
 	mVelocity       = v0;
+
+	//Create bounding rect, primarily for button use
+	mBoundingRect.minPt.x = p0.x - width()/2;
+	mBoundingRect.minPt.y = p0.y - height()/2;
+	mBoundingRect.maxPt.x = mPosition.x + width()/2;
+	mBoundingRect.maxPt.y = mPosition.y + height()/2;
 }
 
 Sprite::~Sprite()
@@ -129,3 +135,16 @@ void Sprite::draw(HDC hBackBufferDC, HDC hSpriteDC, Rect sourceRect)
 	// Restore the original bitmap object.
 	SelectObject(hSpriteDC, oldObj);
 }
+
+void Sprite::setNewImage(int newImageID)
+{
+	// Load the bitmap resources.
+	mhImage = LoadBitmap(mhAppInst, MAKEINTRESOURCE(newImageID));
+
+	// Get the BITMAP structure for each of the bitmaps.
+	GetObject(mhImage, sizeof(BITMAP), &mImageBM);
+
+	// Image and Mask should be the same dimensions.
+	assert(mImageBM.bmWidth  == mMaskBM.bmWidth);
+	assert(mImageBM.bmHeight == mMaskBM.bmHeight);
+};

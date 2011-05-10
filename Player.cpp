@@ -41,8 +41,8 @@ void Player::draw(HDC backbuffer, HDC spriteDC)
 
 	SetBkMode(backbuffer, TRANSPARENT);
 	oldColor = SetTextColor(backbuffer, RGB(255,255,255));
-	TextOut(backbuffer, 15, 775, score, (int)strlen(score));
-	TextOut(backbuffer, 325, 775, lives, (int)strlen(lives));
+	TextOut(backbuffer, 15, 575, score, (int)strlen(score));
+	TextOut(backbuffer, 325, 575, lives, (int)strlen(lives));
 
 	SetTextColor(backbuffer, oldColor);
 }

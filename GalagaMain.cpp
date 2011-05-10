@@ -29,7 +29,7 @@ string gWndCaption = "Galaga!";
 // background bitmap.  This is found by inspecting 
 // the bitmap in an image editor, for example.
 const int gClientWidth  = 400;
-const int gClientHeight = 800;
+const int gClientHeight = 600;
 
 // Center point of client rectangle.
 const POINT gClientCenter = 
@@ -293,7 +293,7 @@ WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	// Left mouse button to unpause the game.
 	case WM_LBUTTONDOWN:
-		if (gGalaga->isPaused())
+		if (gGalaga->isPaused() || gGalaga->betweenLevels())
 		{
 			gGalaga->unpause();
 		}
@@ -305,7 +305,7 @@ WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	// Right mouse button to pause the game.
 	case WM_RBUTTONDOWN:
-		gGalaga->pause();
+		gGalaga->pause(false);
 		return 0;
 
 	// Destroy application resources.
